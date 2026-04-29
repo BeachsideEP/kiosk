@@ -266,7 +266,7 @@
       headers: { 'Content-Type': 'application/json' }
     };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`/api/cliniko?path=${path}`, opts);
+    const res = await fetch(`/api/cliniko?path=${encodeURIComponent(path)}`, opts);
     const text = await res.text();
     if (!res.ok) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
@@ -286,7 +286,7 @@
     const btn = document.getElementById('btn-search');
     btn.disabled=true; btn.textContent='Searching...';
     try {
-      const data = await api(`patients?q%5Blast_name_cont%5D=${encodeURIComponent(ln)}&q%5Bdate_of_birth_eq%5D=${dob}&per_page=10`);
+      const data = await api(`patients?q[last_name_cont]=${encodeURIComponent(ln)}&q[date_of_birth_eq]=${dob}&per_page=10`);
       renderPatients(data.patients || []);
     } catch(e) {
       err.textContent='Could not connect to Cliniko. Please ask staff for help.'; err.style.display='block';
@@ -313,7 +313,7 @@
     document.getElementById('btn-ci').disabled = true;
     try {
       const today = new Date().toISOString().slice(0,10);
-      const data  = await api(`patients/${p.id}/appointments?q%5Bstarts_at_gteq%5D=${today}T00:00:00Z&sort=starts_at&order=asc&per_page=5`);
+      const data  = await api(`patients/${p.id}/appointments?q[starts_at_gteq]=${today}T00:00:00Z&sort=starts_at&order=asc&per_page=5`);
       const appts = data.appointments || [];
       if (!appts.length) { list.innerHTML='<div class="no-results">No appointments found for today. Please speak with our staff.</div>'; return; }
       list.innerHTML = appts.map(a => {
