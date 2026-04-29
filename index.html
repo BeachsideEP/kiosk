@@ -170,17 +170,16 @@
 
   <section class="screen" id="s-reg1">
     <div class="inner">
-      <div class="step-label">New Patient — Step 1 of 3</div>
-      <h2 class="screen-h2">Personal details</h2>
+      <div class="step-label">New Patient — Step 1 of 2</div>
+      <h2 class="screen-h2">Your details</h2>
       <p class="screen-sub">Please fill in your information below.</p>
       <div class="form-row">
         <div class="form-group"><label>First Name</label><input type="text" id="r-fn" placeholder="Jane"></div>
         <div class="form-group"><label>Last Name</label><input type="text" id="r-ln" placeholder="Smith"></div>
       </div>
       <div class="form-group"><label>Date of Birth</label><input type="date" id="r-dob"></div>
-      <div class="form-group"><label>Gender</label>
-        <select id="r-gen"><option value="" disabled selected>Select...</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select>
-      </div>
+      <div class="form-group"><label>Mobile Number</label><input type="tel" id="r-phone" placeholder="04XX XXX XXX"></div>
+      <div class="form-group"><label>Email Address</label><input type="email" id="r-email" placeholder="jane@example.com"></div>
       <div id="r-err1" class="error-msg" style="display:none;"></div>
       <button class="btn-primary" onclick="rNext1()">Continue →</button>
       <button class="btn-ghost" onclick="goTo('s-welcome')">← Back</button>
@@ -189,30 +188,13 @@
 
   <section class="screen" id="s-reg2">
     <div class="inner">
-      <div class="step-label">New Patient — Step 2 of 3</div>
-      <h2 class="screen-h2">Contact details</h2>
-      <p class="screen-sub">How can we reach you?</p>
-      <div class="form-group"><label>Email Address</label><input type="email" id="r-email" placeholder="jane@example.com"></div>
-      <div class="form-group"><label>Mobile Number</label><input type="tel" id="r-phone" placeholder="04XX XXX XXX"></div>
-      <div class="form-group"><label>Address (optional)</label><input type="text" id="r-addr" placeholder="123 Beach St, Suburb VIC 3000"></div>
-      <div class="form-group"><label>How did you hear about us?</label>
-        <select id="r-ref"><option value="" disabled selected>Select...</option><option>Google</option><option>Social Media</option><option>Friend or Family</option><option>GP Referral</option><option>Other</option></select>
-      </div>
-      <div id="r-err2" class="error-msg" style="display:none;"></div>
-      <button class="btn-primary" onclick="rNext2()">Continue →</button>
-      <button class="btn-ghost" onclick="goTo('s-reg1')">← Back</button>
-    </div>
-  </section>
-
-  <section class="screen" id="s-reg3">
-    <div class="inner">
-      <div class="step-label">New Patient — Step 3 of 3</div>
+      <div class="step-label">New Patient — Step 2 of 2</div>
       <h2 class="screen-h2">Confirm & submit</h2>
       <p class="screen-sub">Please review your details before submitting.</p>
       <div class="detail-box" id="r-summary"></div>
-      <div id="r-err3" class="error-msg" style="display:none;"></div>
+      <div id="r-err2" class="error-msg" style="display:none;"></div>
       <button class="btn-primary" id="btn-submit" onclick="submitReg()">Submit Registration</button>
-      <button class="btn-ghost" onclick="goTo('s-reg2')">← Back</button>
+      <button class="btn-ghost" onclick="goTo('s-reg1')">← Back</button>
     </div>
   </section>
 
@@ -241,7 +223,7 @@
   }
   tick(); setInterval(tick, 15000);
 
-  const prog = { 's-welcome':0,'s-checkin':33,'s-appts':66,'s-ci-success':100,'s-reg1':33,'s-reg2':66,'s-reg3':90,'s-reg-success':100 };
+  const prog = { 's-welcome':0,'s-checkin':33,'s-appts':66,'s-ci-success':100,'s-reg1':50,'s-reg2':90,'s-reg-success':100 };
   function goTo(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -253,8 +235,7 @@
 
   function reset() {
     patient = null; appt = null; reg = {};
-    ['ci-ln','ci-dob','r-fn','r-ln','r-dob','r-email','r-phone','r-addr'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
-    ['r-gen','r-ref'].forEach(id => { const e=document.getElementById(id); if(e) e.selectedIndex=0; });
+    ['ci-ln','ci-dob','r-fn','r-ln','r-dob','r-email','r-phone'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
     document.getElementById('ci-results').innerHTML = '';
     document.getElementById('ci-err').style.display = 'none';
     goTo('s-welcome');
@@ -361,45 +342,38 @@
         <div class="detail-row"><span class="dl">Practitioner</span><span>${appt.prac}</span></div>
         <div class="detail-row"><span class="dl">Appointment</span><span>${appt.type}</span></div>`;
       goTo('s-ci-success');
+      setTimeout(() => reset(), 10000);
     } catch(e) { btn.disabled=false; btn.textContent='Confirm Check In'; alert('Could not check in. Please ask staff.'); }
   }
 
   function rNext1() {
-    const fn=document.getElementById('r-fn').value.trim(), ln=document.getElementById('r-ln').value.trim(),
-          dob=document.getElementById('r-dob').value, gen=document.getElementById('r-gen').value;
+    const fn=document.getElementById('r-fn').value.trim();
+    const ln=document.getElementById('r-ln').value.trim();
+    const dob=document.getElementById('r-dob').value;
+    const phone=document.getElementById('r-phone').value.trim();
+    const email=document.getElementById('r-email').value.trim();
     const err=document.getElementById('r-err1'); err.style.display='none';
-    if (!fn||!ln||!dob||!gen) { err.textContent='Please fill in all fields.'; err.style.display='block'; return; }
-    reg={...reg, fn, ln, dob, gen};
+    if (!fn||!ln||!dob||!phone||!email) { err.textContent='Please fill in all fields.'; err.style.display='block'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
+    reg={fn, ln, dob, phone, email};
+    const dobDisplay=new Date(dob+'T00:00:00').toLocaleDateString('en-AU');
+    document.getElementById('r-summary').innerHTML=`
+      <div class="detail-row"><span class="dl">Name</span><span>${fn} ${ln}</span></div>
+      <div class="detail-row"><span class="dl">Date of birth</span><span>${dobDisplay}</span></div>
+      <div class="detail-row"><span class="dl">Mobile</span><span>${phone}</span></div>
+      <div class="detail-row"><span class="dl">Email</span><span>${email}</span></div>`;
     goTo('s-reg2');
   }
 
-  function rNext2() {
-    const email=document.getElementById('r-email').value.trim(), phone=document.getElementById('r-phone').value.trim(),
-          addr=document.getElementById('r-addr').value.trim(), ref=document.getElementById('r-ref').value;
-    const err=document.getElementById('r-err2'); err.style.display='none';
-    if (!email||!phone) { err.textContent='Please provide your email and mobile number.'; err.style.display='block'; return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
-    reg={...reg, email, phone, addr, ref};
-    const dob=new Date(reg.dob+'T00:00:00').toLocaleDateString('en-AU');
-    document.getElementById('r-summary').innerHTML=`
-      <div class="detail-row"><span class="dl">Name</span><span>${reg.fn} ${reg.ln}</span></div>
-      <div class="detail-row"><span class="dl">Date of birth</span><span>${dob}</span></div>
-      <div class="detail-row"><span class="dl">Gender</span><span>${reg.gen}</span></div>
-      <div class="detail-row"><span class="dl">Email</span><span>${reg.email}</span></div>
-      <div class="detail-row"><span class="dl">Mobile</span><span>${reg.phone}</span></div>
-      ${reg.addr?`<div class="detail-row"><span class="dl">Address</span><span>${reg.addr}</span></div>`:''}`;
-    goTo('s-reg3');
-  }
-
   async function submitReg() {
-    const btn=document.getElementById('btn-submit'), err=document.getElementById('r-err3');
+    const btn=document.getElementById('btn-submit'), err=document.getElementById('r-err2');
     btn.disabled=true; btn.textContent='Submitting...'; err.style.display='none';
     try {
-      const body={first_name:reg.fn, last_name:reg.ln, date_of_birth:reg.dob, sex_name:reg.gen, email:reg.email, patient_phone_numbers:[{number:reg.phone, phone_type:'Mobile'}]};
-      if (reg.addr) body.address_1=reg.addr;
+      const body={first_name:reg.fn, last_name:reg.ln, date_of_birth:reg.dob, email:reg.email, patient_phone_numbers:[{number:reg.phone, phone_type:'Mobile'}]};
       await api('create_patient', {}, 'POST', body);
       document.getElementById('r-sname').textContent=`Welcome, ${reg.fn}!`;
       goTo('s-reg-success');
+      setTimeout(() => reset(), 10000);
     } catch(e) {
       err.textContent='Could not submit. Please ask staff for help.'; err.style.display='block';
       btn.disabled=false; btn.textContent='Submit Registration';
