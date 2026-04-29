@@ -139,7 +139,7 @@
       <h2 class="screen-h2">Find your record</h2>
       <p class="screen-sub">Enter your last name and date of birth.</p>
       <div class="form-group"><label>Last Name</label><input type="text" id="ci-ln" placeholder="e.g. Smith" oninput="clearRes()"></div>
-      <div class="form-group"><label>Date of Birth</label><input type="date" id="ci-dob" oninput="clearRes()"></div>
+      <div class="form-group"><label>Year of Birth</label><input type="number" id="ci-dob" placeholder="e.g. 1980" min="1900" max="2025" oninput="clearRes()"></div>
       <div id="ci-err" class="error-msg" style="display:none;"></div>
       <div id="ci-results"></div>
       <button class="btn-primary" id="btn-search" onclick="searchPatient()">Find My Appointment</button>
@@ -266,7 +266,7 @@
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(`https://kiosk.bking-aep.workers.dev/api/cliniko?${qs}`, opts);
     const text = await res.text();
-    if (!res.ok) throw new Error(res.status + ': ' + text);
+    if (!res.ok && res.status !== 204) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
   }
 
@@ -285,7 +285,10 @@
     btn.disabled=true; btn.textContent='Searching...';
     try {
       const data = await api('search_patients', {last_name: ln});
-      const filtered = (data.patients || []).filter(p => p.date_of_birth === dob);
+      const filtered = (data.patients || []).filter(p => {
+        if (!dob) return true;
+        return p.date_of_birth && p.date_of_birth.startsWith(dob);
+      });
       renderPatients(filtered);
     } catch(e) {
       err.textContent='Could not connect to Cliniko. Please ask staff for help.'; err.style.display='block';
@@ -339,7 +342,7 @@
 
   function pickAppt(i) {
     const a = window._apptStore[i];
-    appt = { id: a.id, starts_at: a.starts_at, prac: a.practitioner ? `${a.practitioner.first_name} ${a.practitioner.last_name}` : 'Practitioner', type: a.appointment_type ? a.appointment_type.name : 'Appointment' };
+    appt = { id: a.id, starts_at: a.starts_at, prac: a.practitioner_name || 'Practitioner', type: a.appointment_type_name || 'Appointment' };
     document.querySelectorAll('.appt-item').forEach(el=>el.classList.remove('selected'));
     document.getElementById('ap-'+appt.id)?.classList.add('selected');
     document.getElementById('btn-ci').disabled = false;

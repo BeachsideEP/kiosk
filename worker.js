@@ -93,9 +93,10 @@ export default {
         const res = await fetch(`${CLINIKO_BASE}/appointments/${apptId}/patient_arrived`, {
           method: 'POST',
           headers: authHeaders,
+          body: '{}',
         });
         const text = await res.text();
-        return new Response(text, { status: res.status, headers: corsHeaders });
+        return new Response(text || '{}', { status: res.status, headers: corsHeaders });
 
       } else if (action === 'create_patient') {
         const body = await request.text();
