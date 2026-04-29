@@ -21,9 +21,7 @@ exports.handler = async (event) => {
   const method = event.httpMethod;
   const body = event.body;
  
-  // Decode the path so query params are not double-encoded
-  const decodedPath = decodeURIComponent(path);
-  const url = `${CLINIKO_BASE}/${decodedPath}`;
+  const url = `${CLINIKO_BASE}/${path}`;
   const creds = Buffer.from(`${API_KEY}:`).toString('base64');
  
   try {
@@ -52,3 +50,4 @@ exports.handler = async (event) => {
     };
   }
 };
+ 
