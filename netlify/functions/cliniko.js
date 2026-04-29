@@ -33,21 +33,12 @@ exports.handler = async function(event) {
   if (action === 'search_patients') {
     const lastName = q.last_name || '';
     const dob = q.dob || '';
-    // Build URL object so Node handles encoding correctly
-    const base = new URL(CLINIKO_BASE + '/patients');
-    base.searchParams.append('q[]', 'last_name::' + lastName);
-    if (dob) base.searchParams.append('q[]', 'date_of_birth::' + dob);
-    base.searchParams.append('per_page', '10');
-    url = base.toString();
+    // Use %3A%3A which Node's fetch will NOT decode - it stays encoded
+    url = CLINIKO_BASE + '/patients?q%5B%5D=last_name%3A%3A' + encodeURIComponent(lastName) + '&q%5B%5D=date_of_birth%3A%3A' + encodeURIComponent(dob) + '&per_page=10';
   } else if (action === 'get_appointments') {
     const patientId = q.patient_id || '';
     const today = q.today || '';
-    const base = new URL(CLINIKO_BASE + '/patients/' + patientId + '/appointments');
-    base.searchParams.append('q[]', 'starts_at>=' + today + 'T00:00:00Z');
-    base.searchParams.append('sort', 'starts_at');
-    base.searchParams.append('order', 'asc');
-    base.searchParams.append('per_page', '5');
-    url = base.toString();
+    url = CLINIKO_BASE + '/patients/' + patientId + '/appointments?q%5B%5D=starts_at>%3D' + today + 'T00%3A00%3A00Z&sort=starts_at&order=asc&per_page=5';
   } else if (action === 'arrived') {
     const apptId = q.appointment_id || '';
     url = CLINIKO_BASE + '/appointments/' + apptId + '/patient_arrived';
