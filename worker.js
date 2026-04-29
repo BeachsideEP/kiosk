@@ -23,6 +23,11 @@ export default {
       'User-Agent': 'BEP-Kiosk/1.0 (admin@beachsideep.com.au)',
     };
 
+    async function clinikoGet(path) {
+      const res = await fetch(`${CLINIKO_BASE}/${path}`, { headers: authHeaders });
+      return res.json();
+    }
+
     if (url.pathname === '/api/cliniko') {
       const action = url.searchParams.get('action') || '';
 
@@ -30,47 +35,58 @@ export default {
         const lastName = (url.searchParams.get('last_name') || '').toLowerCase();
         const dob = url.searchParams.get('dob') || '';
 
-        // Fetch all patients and filter in the worker
         let allPatients = [];
         let page = 1;
         let hasMore = true;
 
         while (hasMore && page <= 10) {
-          const res = await fetch(`${CLINIKO_BASE}/patients?per_page=100&page=${page}`, {
-            headers: authHeaders,
-          });
-          const data = await res.json();
+          const data = await clinikoGet(`patients?per_page=100&page=${page}`);
           const patients = data.patients || [];
           allPatients = allPatients.concat(patients);
           hasMore = !!data.links?.next && patients.length === 100;
           page++;
         }
 
-        // Filter by last name and DOB
         const filtered = allPatients.filter(p => {
           const lastNameMatch = p.last_name && p.last_name.toLowerCase() === lastName;
           const dobMatch = !dob || p.date_of_birth === dob;
           return lastNameMatch && dobMatch;
         });
 
-        return new Response(JSON.stringify({ patients: filtered }), {
-          status: 200,
-          headers: corsHeaders,
-        });
+        return new Response(JSON.stringify({ patients: filtered }), { status: 200, headers: corsHeaders });
 
       } else if (action === 'get_appointments') {
         const patientId = url.searchParams.get('patient_id') || '';
         const today = url.searchParams.get('today') || '';
-        const res = await fetch(`${CLINIKO_BASE}/patients/${patientId}/appointments?sort=starts_at&order=asc&per_page=20`, {
-          headers: authHeaders,
-        });
-        const data = await res.json();
-        // Filter to today and future only
+
+        const data = await clinikoGet(`patients/${patientId}/appointments?sort=starts_at&order=asc&per_page=20`);
         const appts = (data.appointments || []).filter(a => a.starts_at >= today);
-        return new Response(JSON.stringify({ appointments: appts }), {
-          status: 200,
-          headers: corsHeaders,
-        });
+
+        // Fetch practitioner and appointment type details for each appointment
+        const enriched = await Promise.all(appts.map(async (a) => {
+          let pracName = 'Practitioner';
+          let typeName = 'Appointment';
+
+          if (a.practitioner?.links?.self) {
+            try {
+              const pracId = a.practitioner.links.self.split('/').pop();
+              const prac = await clinikoGet(`practitioners/${pracId}`);
+              pracName = `${prac.first_name} ${prac.last_name}`;
+            } catch(e) {}
+          }
+
+          if (a.appointment_type?.links?.self) {
+            try {
+              const typeId = a.appointment_type.links.self.split('/').pop();
+              const type = await clinikoGet(`appointment_types/${typeId}`);
+              typeName = type.name;
+            } catch(e) {}
+          }
+
+          return { ...a, practitioner_name: pracName, appointment_type_name: typeName };
+        }));
+
+        return new Response(JSON.stringify({ appointments: enriched }), { status: 200, headers: corsHeaders });
 
       } else if (action === 'arrived') {
         const apptId = url.searchParams.get('appointment_id') || '';

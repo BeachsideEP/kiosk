@@ -325,8 +325,8 @@
         const dt   = new Date(a.starts_at);
         const time = dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
         const date = dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
-        const prac = a.practitioner ? `${a.practitioner.first_name} ${a.practitioner.last_name}` : 'Practitioner';
-        const type = a.appointment_type ? a.appointment_type.name : 'Appointment';
+        const prac = a.practitioner_name || 'Practitioner';
+        const type = a.appointment_type_name || 'Appointment';
         window._apptStore = apptStore;
         return `<div class="appt-item" id="ap-${a.id}" onclick='pickAppt(${i})'>
           <div class="appt-time">${time}</div>
