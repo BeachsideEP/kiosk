@@ -5,7 +5,7 @@ export default {
     const url = new URL(request.url);
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Content-Type': 'application/json',
     };
@@ -90,10 +90,10 @@ export default {
 
       } else if (action === 'arrived') {
         const apptId = url.searchParams.get('appointment_id') || '';
-        const res = await fetch(`${CLINIKO_BASE}/appointments/${apptId}/patient_arrived`, {
-          method: 'POST',
+        const res = await fetch(`${CLINIKO_BASE}/appointments/${apptId}`, {
+          method: 'PATCH',
           headers: authHeaders,
-          body: '{}',
+          body: JSON.stringify({ patient_arrived: true }),
         });
         const text = await res.text();
         return new Response(text || '{}', { status: res.status, headers: corsHeaders });
