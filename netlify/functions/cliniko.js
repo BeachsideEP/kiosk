@@ -1,6 +1,6 @@
 const CLINIKO_BASE = 'https://api.au2.cliniko.com/v1';
 const API_KEY = process.env.CLINIKO_API_KEY;
-
+ 
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -8,22 +8,24 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json',
   };
-
+ 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
-
+ 
   if (!API_KEY) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'API key not configured' }) };
   }
-
+ 
   const path = event.queryStringParameters?.path || '';
   const method = event.httpMethod;
   const body = event.body;
-
-  const url = `${CLINIKO_BASE}/${path}`;
+ 
+  // Decode the path so query params are not double-encoded
+  const decodedPath = decodeURIComponent(path);
+  const url = `${CLINIKO_BASE}/${decodedPath}`;
   const creds = Buffer.from(`${API_KEY}:`).toString('base64');
-
+ 
   try {
     const response = await fetch(url, {
       method,
@@ -35,7 +37,7 @@ exports.handler = async (event) => {
       },
       body: method !== 'GET' ? body : undefined,
     });
-
+ 
     const data = await response.text();
     return {
       statusCode: response.status,
