@@ -266,7 +266,7 @@
       headers: { 'Content-Type': 'application/json' }
     };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`/api/cliniko?path=${encodeURIComponent(path)}`, opts);
+    const res = await fetch(`/api/cliniko?path=${path}`, opts);
     const text = await res.text();
     if (!res.ok) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
