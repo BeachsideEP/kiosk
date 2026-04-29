@@ -202,10 +202,11 @@
   </section>
 
   <section class="screen" id="s-reg-success">
-    <div class="inner">
+    <div class="inner" style="max-width:100%;">
       <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="success-name" id="r-sname"></div>
-      <p class="success-msg">Your details have been received. A staff member will assist you shortly to complete your registration.</p>
+      <p class="success-msg">Your details have been received! You can book your first appointment below, or a staff member can help you.</p>
+      <iframe id="cliniko-75568810" src="https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events: auto; border-radius: 12px; margin-bottom: 16px;"></iframe>
       <button class="btn-primary" onclick="reset()">Done</button>
     </div>
   </section>
@@ -376,12 +377,21 @@
       await api('create_patient', {}, 'POST', body);
       document.getElementById('r-sname').textContent=`Welcome, ${reg.fn}!`;
       goTo('s-reg-success');
-      setTimeout(() => reset(), 10000);
     } catch(e) {
       err.textContent='Could not submit. Please ask staff for help.'; err.style.display='block';
       btn.disabled=false; btn.textContent='Submit Registration';
     }
   }
+
+  window.addEventListener('message', function(e) {
+    var f = document.getElementById('cliniko-75568810');
+    if (!f) return;
+    if (typeof e.data !== 'string') return;
+    if (e.data.indexOf('cliniko-bookings-resize') > -1) {
+      f.style.height = Number(e.data.split(':')[1]) + 'px';
+    }
+    if (e.data.indexOf('cliniko-bookings-page') > -1) f.scrollIntoView();
+  });
 </script>
 </body>
 </html>
