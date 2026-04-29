@@ -260,13 +260,11 @@
     goTo('s-welcome');
   }
 
-  async function api(path, method='GET', body=null) {
-    const opts = {
-      method,
-      headers: { 'Content-Type': 'application/json' }
-    };
+  async function api(action, params={}, method='GET', body=null) {
+    const qs = new URLSearchParams({action, ...params}).toString();
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`/api/cliniko?path=${encodeURIComponent(path)}`, opts);
+    const res = await fetch(`/api/cliniko?${qs}`, opts);
     const text = await res.text();
     if (!res.ok) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
@@ -286,7 +284,7 @@
     const btn = document.getElementById('btn-search');
     btn.disabled=true; btn.textContent='Searching...';
     try {
-      const data = await api('patients?q[]=' + encodeURIComponent('last_name') + '%3A%3A' + encodeURIComponent(ln) + '&q[]=' + encodeURIComponent('date_of_birth') + '%3A%3A' + encodeURIComponent(dob) + '&per_page=10');
+      const data = await api('search_patients', {last_name: ln, dob});
       renderPatients(data.patients || []);
     } catch(e) {
       err.textContent='Could not connect to Cliniko. Please ask staff for help.'; err.style.display='block';
@@ -313,7 +311,7 @@
     document.getElementById('btn-ci').disabled = true;
     try {
       const today = new Date().toISOString().slice(0,10);
-      const data  = await api(`patients/${p.id}/appointments?q[starts_at_gteq]=${today}T00:00:00Z&sort=starts_at&order=asc&per_page=5`);
+      const data  = await api('get_appointments', {patient_id: p.id, today});
       const appts = data.appointments || [];
       if (!appts.length) { list.innerHTML='<div class="no-results">No appointments found for today. Please speak with our staff.</div>'; return; }
       list.innerHTML = appts.map(a => {
@@ -343,7 +341,7 @@
     const btn = document.getElementById('btn-ci');
     btn.disabled=true; btn.textContent='Checking in...';
     try {
-      await api(`appointments/${appt.id}/patient_arrived`,'POST');
+      await api('arrived', {appointment_id: appt.id}, 'POST');
       const dt   = new Date(appt.starts_at);
       const time = dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
       document.getElementById('ci-sname').textContent = `Welcome, ${patient.first_name}!`;
@@ -388,7 +386,7 @@
     try {
       const body={first_name:reg.fn, last_name:reg.ln, date_of_birth:reg.dob, sex_name:reg.gen, email:reg.email, patient_phone_numbers:[{number:reg.phone, phone_type:'Mobile'}]};
       if (reg.addr) body.address_1=reg.addr;
-      await api('patients','POST',body);
+      await api('create_patient', {}, 'POST', body);
       document.getElementById('r-sname').textContent=`Welcome, ${reg.fn}!`;
       goTo('s-reg-success');
     } catch(e) {
