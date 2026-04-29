@@ -292,19 +292,23 @@
     } finally { btn.disabled=false; btn.textContent='Find My Appointment'; }
   }
 
+  let patientStore = [];
+
   function renderPatients(patients) {
+    patientStore = patients;
     const wrap = document.getElementById('ci-results');
     if (!patients.length) { wrap.innerHTML='<div class="no-results">No records found. Please register as a new patient or ask staff.</div>'; return; }
-    wrap.innerHTML = '<div class="search-results">' + patients.map(p => {
+    wrap.innerHTML = '<div class="search-results">' + patients.map((p, i) => {
       const dob = p.date_of_birth ? new Date(p.date_of_birth+'T00:00:00').toLocaleDateString('en-AU') : '';
-      return `<div class="patient-card" onclick='pickPatient(${JSON.stringify(p)})'>
+      return `<div class="patient-card" onclick='pickPatient(${i})'>
         <div><div class="pname">${p.first_name} ${p.last_name}</div><div class="pdob">DOB: ${dob}</div></div>
         <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
     }).join('') + '</div>';
   }
 
-  async function pickPatient(p) {
+  async function pickPatient(i) {
+    const p = patientStore[i];
     patient = p;
     goTo('s-appts');
     const list = document.getElementById('appt-list');
@@ -315,14 +319,16 @@
       const data  = await api('get_appointments', {patient_id: p.id, today});
       const appts = data.appointments || [];
       if (!appts.length) { list.innerHTML='<div class="no-results">No appointments found for today. Please speak with our staff.</div>'; return; }
-      list.innerHTML = appts.map(a => {
+      let apptStore = [];
+      list.innerHTML = appts.map((a, i) => {
+        apptStore.push(a);
         const dt   = new Date(a.starts_at);
         const time = dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
         const date = dt.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
         const prac = a.practitioner ? `${a.practitioner.first_name} ${a.practitioner.last_name}` : 'Practitioner';
         const type = a.appointment_type ? a.appointment_type.name : 'Appointment';
-        const obj  = JSON.stringify({id:a.id, starts_at:a.starts_at, prac, type});
-        return `<div class="appt-item" id="ap-${a.id}" onclick='pickAppt(${obj})'>
+        window._apptStore = apptStore;
+        return `<div class="appt-item" id="ap-${a.id}" onclick='pickAppt(${i})'>
           <div class="appt-time">${time}</div>
           <div class="appt-prac">${date} · with ${prac}</div>
           <div class="appt-type">${type}</div>
@@ -331,10 +337,11 @@
     } catch(e) { list.innerHTML='<div class="no-results">Could not load appointments. Please ask staff.</div>'; }
   }
 
-  function pickAppt(a) {
-    appt = a;
+  function pickAppt(i) {
+    const a = window._apptStore[i];
+    appt = { id: a.id, starts_at: a.starts_at, prac: a.practitioner ? `${a.practitioner.first_name} ${a.practitioner.last_name}` : 'Practitioner', type: a.appointment_type ? a.appointment_type.name : 'Appointment' };
     document.querySelectorAll('.appt-item').forEach(el=>el.classList.remove('selected'));
-    document.getElementById('ap-'+a.id)?.classList.add('selected');
+    document.getElementById('ap-'+appt.id)?.classList.add('selected');
     document.getElementById('btn-ci').disabled = false;
   }
 
