@@ -206,7 +206,7 @@
       <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <div class="success-name" id="r-sname"></div>
       <p class="success-msg">Your details have been received! You can book your first appointment below, or a staff member can help you.</p>
-      <iframe id="cliniko-75568810" src="https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events: auto; border-radius: 12px; margin-bottom: 16px;"></iframe>
+      <iframe id="cliniko-75568810" src="" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events: auto; border-radius: 12px; margin-bottom: 16px;"></iframe>
       <button class="btn-primary" onclick="reset()">Done</button>
     </div>
   </section>
@@ -376,6 +376,9 @@
       const body={first_name:reg.fn, last_name:reg.ln, date_of_birth:reg.dob, email:reg.email, patient_phone_numbers:[{number:reg.phone, phone_type:'Mobile'}]};
       await api('create_patient', {}, 'POST', body);
       document.getElementById('r-sname').textContent=`Welcome, ${reg.fn}!`;
+      // Build booking URL with patient details pre-filled
+      const bookingUrl = `https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true&first_name=${encodeURIComponent(reg.fn)}&last_name=${encodeURIComponent(reg.ln)}&email=${encodeURIComponent(reg.email)}&phone=${encodeURIComponent(reg.phone)}`;
+      document.getElementById('cliniko-75568810').src = bookingUrl;
       goTo('s-reg-success');
     } catch(e) {
       err.textContent='Could not submit. Please ask staff for help.'; err.style.display='block';
