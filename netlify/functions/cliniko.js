@@ -33,14 +33,21 @@ exports.handler = async function(event) {
   if (action === 'search_patients') {
     const lastName = q.last_name || '';
     const dob = q.dob || '';
-    // Use = for exact match, ~~  for contains - build URL manually with literal colons
-    const filter1 = 'last_name=' + lastName;
-    const filter2 = 'date_of_birth=' + dob;
-    url = CLINIKO_BASE + '/patients?q[]=' + filter1 + '&q[]=' + filter2 + '&per_page=10';
+    // Build URL object so Node handles encoding correctly
+    const base = new URL(CLINIKO_BASE + '/patients');
+    base.searchParams.append('q[]', 'last_name::' + lastName);
+    if (dob) base.searchParams.append('q[]', 'date_of_birth::' + dob);
+    base.searchParams.append('per_page', '10');
+    url = base.toString();
   } else if (action === 'get_appointments') {
     const patientId = q.patient_id || '';
     const today = q.today || '';
-    url = CLINIKO_BASE + '/patients/' + patientId + '/appointments?q[]=starts_at>=' + today + 'T00:00:00Z&sort=starts_at&order=asc&per_page=5';
+    const base = new URL(CLINIKO_BASE + '/patients/' + patientId + '/appointments');
+    base.searchParams.append('q[]', 'starts_at>=' + today + 'T00:00:00Z');
+    base.searchParams.append('sort', 'starts_at');
+    base.searchParams.append('order', 'asc');
+    base.searchParams.append('per_page', '5');
+    url = base.toString();
   } else if (action === 'arrived') {
     const apptId = q.appointment_id || '';
     url = CLINIKO_BASE + '/appointments/' + apptId + '/patient_arrived';
