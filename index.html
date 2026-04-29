@@ -264,7 +264,7 @@
     const qs = new URLSearchParams({action, ...params}).toString();
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`/api/cliniko?${qs}`, opts);
+    const res = await fetch(`https://kiosk.bking-aep.workers.dev/api/cliniko?${qs}`, opts);
     const text = await res.text();
     if (!res.ok) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
@@ -284,8 +284,9 @@
     const btn = document.getElementById('btn-search');
     btn.disabled=true; btn.textContent='Searching...';
     try {
-      const data = await api('search_patients', {last_name: ln, dob});
-      renderPatients(data.patients || []);
+      const data = await api('search_patients', {last_name: ln});
+      const filtered = (data.patients || []).filter(p => p.date_of_birth === dob);
+      renderPatients(filtered);
     } catch(e) {
       err.textContent='Could not connect to Cliniko. Please ask staff for help.'; err.style.display='block';
     } finally { btn.disabled=false; btn.textContent='Find My Appointment'; }
