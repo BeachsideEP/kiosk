@@ -128,7 +128,7 @@
           <div class="choice-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <h3>Check In</h3><p>I have an appointment today</p>
         </div>
-        <div class="choice-card" onclick="goTo('s-reg1')">
+        <div class="choice-card" onclick="goTo('s-booking')">
           <div class="choice-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></div>
           <h3>New Patient</h3><p>First time visiting us</p>
         </div>
@@ -171,43 +171,12 @@
     </div>
   </section>
 
-  <section class="screen" id="s-reg1">
-    <div class="inner">
-      <div class="step-label">New Patient — Step 1 of 2</div>
-      <h2 class="screen-h2">Your details</h2>
-      <p class="screen-sub">Please fill in your information below.</p>
-      <div class="form-row">
-        <div class="form-group"><label>First Name</label><input type="text" id="r-fn" placeholder="Jane"></div>
-        <div class="form-group"><label>Last Name</label><input type="text" id="r-ln" placeholder="Smith"></div>
-      </div>
-      <div class="form-group"><label>Date of Birth</label><input type="date" id="r-dob"></div>
-      <div class="form-group"><label>Mobile Number</label><input type="tel" id="r-phone" placeholder="04XX XXX XXX"></div>
-      <div class="form-group"><label>Email Address</label><input type="email" id="r-email" placeholder="jane@example.com"></div>
-      <div id="r-err1" class="error-msg" style="display:none;"></div>
-      <button class="btn-primary" onclick="rNext1()">Continue →</button>
-      <button class="btn-ghost" onclick="goTo('s-welcome')">← Back</button>
-    </div>
-  </section>
-
-  <section class="screen" id="s-reg2">
-    <div class="inner">
-      <div class="step-label">New Patient — Step 2 of 2</div>
-      <h2 class="screen-h2">Confirm & submit</h2>
-      <p class="screen-sub">Please review your details before submitting.</p>
-      <div class="detail-box" id="r-summary"></div>
-      <div id="r-err2" class="error-msg" style="display:none;"></div>
-      <button class="btn-primary" id="btn-submit" onclick="submitReg()">Submit Registration</button>
-      <button class="btn-ghost" onclick="goTo('s-reg1')">← Back</button>
-    </div>
-  </section>
-
-  <section class="screen" id="s-reg-success">
+  <section class="screen" id="s-booking">
     <div class="inner" style="max-width:100%;">
-      <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <div class="success-name" id="r-sname"></div>
-      <p class="success-msg">Your details have been received! You can book your first appointment below, or a staff member can help you.</p>
-      <iframe id="cliniko-75568810" src="" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events: auto; border-radius: 12px; margin-bottom: 16px;"></iframe>
-      <button class="btn-primary" onclick="reset()">Done</button>
+      <div class="step-label">New Patient</div>
+      <h2 class="screen-h2" style="margin-bottom:20px;">Book your first appointment</h2>
+      <iframe id="cliniko-booking" src="https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true" frameborder="0" scrolling="auto" width="100%" height="800" style="pointer-events: auto; border-radius: 12px; margin-bottom: 16px;"></iframe>
+      <button class="btn-ghost" onclick="reset()">← Back to Home</button>
     </div>
   </section>
 
@@ -217,7 +186,7 @@
 <script>
 
 
-  let patient = null, appt = null, reg = {};
+  let patient = null, appt = null;
 
   function tick() {
     const now = new Date();
@@ -227,7 +196,7 @@
   }
   tick(); setInterval(tick, 15000);
 
-  const prog = { 's-welcome':0,'s-checkin':33,'s-appts':66,'s-ci-success':100,'s-reg1':50,'s-reg2':90,'s-reg-success':100 };
+  const prog = { 's-welcome':0,'s-checkin':33,'s-appts':66,'s-ci-success':100,'s-booking':50 };
   function goTo(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -235,15 +204,31 @@
     document.getElementById('prog-bar').style.display = pct ? 'block' : 'none';
     document.getElementById('prog-fill').style.width = pct + '%';
     window.scrollTo(0,0);
+    resetInactivityTimer();
   }
 
   function reset() {
-    patient = null; appt = null; reg = {};
-    ['ci-ln','ci-dob','r-fn','r-ln','r-dob','r-email','r-phone'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
+    patient = null; appt = null;
+    ['ci-ln','ci-dob'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
     document.getElementById('ci-results').innerHTML = '';
     document.getElementById('ci-err').style.display = 'none';
     goTo('s-welcome');
+    resetInactivityTimer();
   }
+
+  // Inactivity timer — resets to home after 60 seconds of no interaction
+  let inactivityTimer = null;
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    const current = document.querySelector('.screen.active');
+    if (current && current.id !== 's-welcome') {
+      inactivityTimer = setTimeout(() => reset(), 60000);
+    }
+  }
+  // Listen for any user interaction
+  ['touchstart','touchmove','mousedown','mousemove','keydown','scroll','click'].forEach(evt => {
+    document.addEventListener(evt, resetInactivityTimer, { passive: true });
+  });
 
   async function api(action, params={}, method='GET', body=null) {
     const qs = new URLSearchParams({action, ...params}).toString();
@@ -350,44 +335,8 @@
     } catch(e) { btn.disabled=false; btn.textContent='Confirm Check In'; alert('Could not check in. Please ask staff.'); }
   }
 
-  function rNext1() {
-    const fn=document.getElementById('r-fn').value.trim();
-    const ln=document.getElementById('r-ln').value.trim();
-    const dob=document.getElementById('r-dob').value;
-    const phone=document.getElementById('r-phone').value.trim();
-    const email=document.getElementById('r-email').value.trim();
-    const err=document.getElementById('r-err1'); err.style.display='none';
-    if (!fn||!ln||!dob||!phone||!email) { err.textContent='Please fill in all fields.'; err.style.display='block'; return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
-    reg={fn, ln, dob, phone, email};
-    const dobDisplay=new Date(dob+'T00:00:00').toLocaleDateString('en-AU');
-    document.getElementById('r-summary').innerHTML=`
-      <div class="detail-row"><span class="dl">Name</span><span>${fn} ${ln}</span></div>
-      <div class="detail-row"><span class="dl">Date of birth</span><span>${dobDisplay}</span></div>
-      <div class="detail-row"><span class="dl">Mobile</span><span>${phone}</span></div>
-      <div class="detail-row"><span class="dl">Email</span><span>${email}</span></div>`;
-    goTo('s-reg2');
-  }
-
-  async function submitReg() {
-    const btn=document.getElementById('btn-submit'), err=document.getElementById('r-err2');
-    btn.disabled=true; btn.textContent='Submitting...'; err.style.display='none';
-    try {
-      const body={first_name:reg.fn, last_name:reg.ln, date_of_birth:reg.dob, email:reg.email, patient_phone_numbers:[{number:reg.phone, phone_type:'Mobile'}]};
-      await api('create_patient', {}, 'POST', body);
-      document.getElementById('r-sname').textContent=`Welcome, ${reg.fn}!`;
-      // Build booking URL with patient details pre-filled
-      const bookingUrl = `https://beachside-exercise-physiology.au2.cliniko.com/bookings?business_id=1335938640521468158&embedded=true&first_name=${encodeURIComponent(reg.fn)}&last_name=${encodeURIComponent(reg.ln)}&email=${encodeURIComponent(reg.email)}&phone=${encodeURIComponent(reg.phone)}`;
-      document.getElementById('cliniko-75568810').src = bookingUrl;
-      goTo('s-reg-success');
-    } catch(e) {
-      err.textContent='Could not submit. Please ask staff for help.'; err.style.display='block';
-      btn.disabled=false; btn.textContent='Submit Registration';
-    }
-  }
-
   window.addEventListener('message', function(e) {
-    var f = document.getElementById('cliniko-75568810');
+    var f = document.getElementById('cliniko-booking');
     if (!f) return;
     if (typeof e.data !== 'string') return;
     if (e.data.indexOf('cliniko-bookings-resize') > -1) {
