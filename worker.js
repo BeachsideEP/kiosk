@@ -29,12 +29,12 @@ export default {
 
       if (action === 'search_patients') {
         const lastName = url.searchParams.get('last_name') || '';
-        // Use %3A%3A for :: - Cloudflare passes these through correctly to the destination
-        clinikoUrl = CLINIKO_BASE + '/patients?q%5B%5D=last_name%3A%3A' + encodeURIComponent(lastName) + '&per_page=50';
+        // Use Cliniko's label search which searches across name fields
+        clinikoUrl = CLINIKO_BASE + '/patients?label=' + encodeURIComponent(lastName) + '&per_page=50';
       } else if (action === 'get_appointments') {
         const patientId = url.searchParams.get('patient_id') || '';
         const today = url.searchParams.get('today') || '';
-        clinikoUrl = CLINIKO_BASE + '/patients/' + patientId + '/appointments?q%5B%5D=starts_at%3E%3D' + encodeURIComponent(today + 'T00:00:00Z') + '&sort=starts_at&order=asc&per_page=5';
+        clinikoUrl = CLINIKO_BASE + '/patients/' + patientId + '/appointments?sort=starts_at&order=asc&per_page=20';
       } else if (action === 'arrived') {
         const apptId = url.searchParams.get('appointment_id') || '';
         clinikoUrl = CLINIKO_BASE + '/appointments/' + apptId + '/patient_arrived';
@@ -49,7 +49,6 @@ export default {
         method: request.method,
         headers: authHeaders,
         body,
-        cf: { resolveOverride: undefined }
       });
 
       const data = await response.text();
