@@ -229,15 +229,7 @@
 </div>
 
 <script>
-  const CLINIKO_KEY = 'MS0xOTM4NzEyOTY5NjA5MjIyMjk4LW5oZXVTQVYxVTIzRVdVMXdtQUR1NFRiYlMzMHY2SHR0-au2';
-  const CLINIKO_BASE = 'https://api.au2.cliniko.com/v1';
 
-  // Try multiple proxies in order until one works
-  const PROXIES = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://proxy.cors.sh/${url}`,
-  ];
 
   let patient = null, appt = null, reg = {};
 
@@ -269,30 +261,15 @@
   }
 
   async function api(path, method='GET', body=null) {
-    const creds = btoa(CLINIKO_KEY + ':');
-    const targetUrl = `${CLINIKO_BASE}/${path}`;
     const opts = {
       method,
-      headers: {
-        'Authorization': 'Basic ' + creds,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'BEPKiosk/1.0 (admin@beachsideep.com.au)',
-      }
+      headers: { 'Content-Type': 'application/json' }
     };
     if (body) opts.body = JSON.stringify(body);
-
-    // Try each proxy in turn
-    for (const makeProxy of PROXIES) {
-      try {
-        const res = await fetch(makeProxy(targetUrl), opts);
-        const text = await res.text();
-        if (res.ok) return text ? JSON.parse(text) : {};
-      } catch(e) {
-        // try next proxy
-      }
-    }
-    throw new Error('All proxies failed');
+    const res = await fetch(`/api/cliniko?path=${encodeURIComponent(path)}`, opts);
+    const text = await res.text();
+    if (!res.ok) throw new Error(res.status + ': ' + text);
+    return text ? JSON.parse(text) : {};
   }
 
   function clearRes() {
