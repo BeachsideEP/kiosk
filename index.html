@@ -225,10 +225,7 @@
     const qs = new URLSearchParams({action, ...params}).toString();
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
-    const _url = `https://kiosk.bking-aep.workers.dev/api/cliniko?${qs}`;
-    console.log('[kiosk] fetch', _url);
-    const res = await fetch(_url, opts);
-    console.log('[kiosk] status', res.status);
+    const res = await fetch(`https://kiosk.bking-aep.workers.dev/api/cliniko?${qs}`, opts);
     const text = await res.text();
     if (!res.ok && res.status !== 204) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
@@ -255,7 +252,7 @@
       });
       renderPatients(filtered);
     } catch(e) {
-      err.innerHTML = '<b>Debug info (show to developer):</b><br>' + e.message; err.style.display='block';
+      err.textContent='Could not connect to Cliniko. Please ask staff for help.'; err.style.display='block';
     } finally { btn.disabled=false; btn.textContent='Find My Appointment'; }
   }
 
@@ -314,7 +311,7 @@
           <div class="appt-type">${type}</div>
         </div>`;
       }).join('');
-    } catch(e) { list.innerHTML='<div class="no-results"><b>Debug:</b><br>' + e.message + '</div>'; }
+    } catch(e) { list.innerHTML='<div class="no-results">Could not load appointments. Please ask staff.</div>'; }
   }
 
   function pickAppt(i) {

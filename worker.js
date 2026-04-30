@@ -1,12 +1,11 @@
 /**
  * Cloudflare Worker — BEP Kiosk proxy for Cliniko API
- * Handles action= routing from the kiosk.
  */
 
 const CLINIKO_BASE = 'https://api.au2.cliniko.com/v1';
 
 function todayWindow(localDateStr) {
-  // localDateStr is YYYY-MM-DD in Brisbane time (UTC+10, no DST)
+  // Brisbane is UTC+10, no DST
   const start = new Date(localDateStr + 'T00:00:00+10:00').toISOString();
   const end   = new Date(localDateStr + 'T23:59:59+10:00').toISOString();
   return { start, end };
@@ -56,8 +55,8 @@ export default {
     const key = env.CLINIKO_API_KEY;
     if (!key) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: cors });
 
-    const u      = new URL(request.url);
-    const action = u.searchParams.get('action') || '';
+    const u       = new URL(request.url);
+    const action  = u.searchParams.get('action') || '';
     const reqBody = request.method !== 'GET' ? await request.text() : undefined;
 
     let path = '';
@@ -65,15 +64,18 @@ export default {
 
     if (action === 'search_patients') {
       const ln = u.searchParams.get('last_name') || '';
-      path = 'patients?q[last_name]=' + encodeURIComponent(ln) + '&per_page=50&sort=last_name';
+      // Correct Cliniko filter syntax: q[]=last_name:~Smith (contains operator)
+      path = 'patients?q[]=' + encodeURIComponent('last_name:~' + ln) + '&per_page=50&sort=last_name';
 
     } else if (action === 'get_appointments') {
       const pid  = u.searchParams.get('patient_id') || '';
       const date = u.searchParams.get('today') || new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Brisbane' });
       const { start, end } = todayWindow(date);
-      path = 'individual_appointments?patient_id=' + pid
-           + '&starts_at[gte]=' + encodeURIComponent(start)
-           + '&starts_at[lte]=' + encodeURIComponent(end)
+      // q[]=starts_at:>X&q[]=starts_at:<Y is the correct Cliniko datetime filter syntax
+      path = 'individual_appointments'
+           + '?q[]=' + encodeURIComponent('patient_id:=' + pid)
+           + '&q[]=' + encodeURIComponent('starts_at:>' + start)
+           + '&q[]=' + encodeURIComponent('starts_at:<' + end)
            + '&per_page=50&sort=starts_at';
       transform = raw => {
         const d = JSON.parse(raw);
@@ -82,10 +84,10 @@ export default {
 
     } else if (action === 'arrived') {
       const aid = u.searchParams.get('appointment_id') || '';
-      path = 'appointments/' + aid + '/arrived';
+      path = 'individual_appointments/' + aid + '/arrived';
 
     } else {
-      // pass-through for any legacy ?path= calls
+      // legacy pass-through
       path = decodeURIComponent(u.searchParams.get('path') || '');
     }
 
