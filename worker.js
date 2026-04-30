@@ -83,9 +83,17 @@ export default {
       };
 
     } else if (action === 'arrived') {
+      // arrived is a two-step process:
+      // 1. GET the attendee id from the appointment
+      // 2. PATCH the attendee with arrived timestamp
       const aid = u.searchParams.get('appointment_id') || '';
-      // Cliniko has no /arrived sub-endpoint - patch patient_arrived: true instead
-      path = 'individual_appointments/' + aid;
+      const attendeesRes = await cliniko('individual_appointments/' + aid + '/attendees', 'GET', undefined, key);
+      const attendeesData = await attendeesRes.json();
+      const attendee = (attendeesData.attendees || [])[0];
+      if (!attendee) {
+        return new Response(JSON.stringify({ error: 'No attendee found' }), { status: 404, headers: cors });
+      }
+      path = 'attendees/' + attendee.id;
 
     } else {
       // legacy pass-through
@@ -95,7 +103,7 @@ export default {
     try {
       // arrived action needs PATCH + body regardless of what kiosk sends
       const effectiveMethod = (action === 'arrived') ? 'PATCH' : request.method;
-      const effectiveBody   = (action === 'arrived') ? JSON.stringify({ patient_arrived: true }) : reqBody;
+      const effectiveBody   = (action === 'arrived') ? JSON.stringify({ arrived: new Date().toISOString() }) : reqBody;
       const res  = await cliniko(path, effectiveMethod, effectiveBody, key);
       const text = await res.text();
       if (!res.ok) return new Response(text, { status: res.status, headers: cors });
