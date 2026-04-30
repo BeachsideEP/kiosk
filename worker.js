@@ -102,8 +102,8 @@ export default {
 
     try {
       // arrived action needs PATCH + body regardless of what kiosk sends
-      const effectiveMethod = (action === 'arrived') ? 'PATCH' : request.method;
-      const effectiveBody   = (action === 'arrived') ? JSON.stringify({ arrived: new Date().toISOString() }) : reqBody;
+      const effectiveMethod = (action === 'arrived') ? 'PUT' : request.method;
+      const effectiveBody   = (action === 'arrived') ? JSON.stringify({ arrived: true }) : reqBody;
       const res  = await cliniko(path, effectiveMethod, effectiveBody, key);
       const text = await res.text();
       if (!res.ok) return new Response(text, { status: res.status, headers: cors });
