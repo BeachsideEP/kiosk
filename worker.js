@@ -84,7 +84,8 @@ export default {
 
     } else if (action === 'arrived') {
       const aid = u.searchParams.get('appointment_id') || '';
-      path = 'individual_appointments/' + aid + '/arrived';
+      // Cliniko has no /arrived sub-endpoint - patch patient_arrived: true instead
+      path = 'individual_appointments/' + aid;
 
     } else {
       // legacy pass-through
@@ -92,7 +93,10 @@ export default {
     }
 
     try {
-      const res  = await cliniko(path, request.method, reqBody, key);
+      // arrived action needs PATCH + body regardless of what kiosk sends
+      const effectiveMethod = (action === 'arrived') ? 'PATCH' : request.method;
+      const effectiveBody   = (action === 'arrived') ? JSON.stringify({ patient_arrived: true }) : reqBody;
+      const res  = await cliniko(path, effectiveMethod, effectiveBody, key);
       const text = await res.text();
       if (!res.ok) return new Response(text, { status: res.status, headers: cors });
       const out = (transform && text) ? (() => { try { return transform(text); } catch { return text; } })() : text;
