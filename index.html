@@ -221,11 +221,34 @@
     document.addEventListener(evt, resetInactivityTimer, { passive: true });
   });
 
-  async function api(action, params={}, method='GET', body=null) {
-    const qs = new URLSearchParams({action, ...params}).toString();
+  const WORKER = 'https://kiosk.bking-aep.workers.dev';
+
+  // Build a Cliniko API path for a given action, then proxy via the worker's
+  // pass-through (?path=...) — this matches what the deployed cliniko.js expects.
+  async function api(action, params={}, method='GET', bodyData=null) {
+    let clinikoPath = '';
+
+    if (action === 'search_patients') {
+      clinikoPath = `patients?q[last_name]=${encodeURIComponent(params.last_name||'')}&per_page=50&sort=last_name`;
+
+    } else if (action === 'get_appointments' || action === 'get_individual_appointments') {
+      // Brisbane is UTC+10 year-round. Build a proper UTC window for the local date.
+      const localDate = params.today || new Date().toLocaleDateString('en-CA', {timeZone:'Australia/Brisbane'});
+      const startUTC = new Date(localDate + 'T00:00:00+10:00').toISOString();
+      const endUTC   = new Date(localDate + 'T23:59:59+10:00').toISOString();
+      clinikoPath = `individual_appointments?patient_id=${params.patient_id}`
+        + `&starts_at[gte]=${encodeURIComponent(startUTC)}`
+        + `&starts_at[lte]=${encodeURIComponent(endUTC)}`
+        + `&per_page=50&sort=starts_at`;
+
+    } else if (action === 'arrived') {
+      clinikoPath = `appointments/${params.appointment_id}/arrived`;
+    }
+
+    const workerUrl = `${WORKER}/api/cliniko?path=${encodeURIComponent(clinikoPath)}`;
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(`https://kiosk.bking-aep.workers.dev/api/cliniko?${qs}`, opts);
+    if (bodyData) opts.body = JSON.stringify(bodyData);
+    const res = await fetch(workerUrl, opts);
     const text = await res.text();
     if (!res.ok && res.status !== 204) throw new Error(res.status + ': ' + text);
     return text ? JSON.parse(text) : {};
@@ -279,15 +302,22 @@
     list.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Loading appointments...</div></div>';
     document.getElementById('btn-ci').disabled = true;
     try {
-      const today = new Date().toISOString().slice(0,10);
-      // Fetch both regular and recurring (individual) appointments in parallel
-      const [data, dataIndividual] = await Promise.all([
-        api('get_appointments', {patient_id: p.id, today}),
-        api('get_individual_appointments', {patient_id: p.id, today})
-      ]);
-      const seen = new Set();
-      const appts = [...(data.appointments || []), ...(dataIndividual.appointments || [])]
-        .filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+      const today = new Date().toLocaleDateString('en-CA', {timeZone:'Australia/Brisbane'});
+      const data  = await api('get_appointments', {patient_id: p.id, today});
+      // individual_appointments response uses a different key
+      const raw = data.individual_appointments || data.appointments || [];
+      // Normalise each item so the rest of the code works unchanged
+      const appts = raw.map(a => ({
+        id: a.id,
+        starts_at: a.starts_at,
+        ends_at: a.ends_at,
+        practitioner_name: a.practitioner
+          ? ((a.practitioner.first_name||'') + ' ' + (a.practitioner.last_name||'')).trim()
+          : (a.practitioner_name || 'Practitioner'),
+        appointment_type_name: a.appointment_type
+          ? (a.appointment_type.name || 'Appointment')
+          : (a.appointment_type_name || 'Appointment'),
+      }));
       if (!appts.length) { list.innerHTML='<div class="no-results">No appointments found for today. Please speak with our staff.</div>'; return; }
       let apptStore = [];
       list.innerHTML = appts.map((a, i) => {
